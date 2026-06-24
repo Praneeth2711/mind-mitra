@@ -127,30 +127,23 @@ async def list_journal_entries(
     """Retrieve journal entries for the authenticated user."""
     cache_key = journal_list_cache_key(current_user.id)
     cached = await cache_service.get_json(cache_key)
+    
     if cached is not None:
         response.headers["X-Cache"] = "HIT"
-        # Since cache contains basic models, we will load full response from db
-        # Actually cache might not have emotion fields.
-        pass
-    
-    # We fetch directly from DB to include emotion fields if they were missed by cache
-    collection = get_collection("journal_entries")
-    total_count = await collection.count_documents({"user_id": current_user.id}) #counting total entries
-    cursor = (
-        collection.find({"user_id": current_user.id})
-        .sort("created_at", -1)
-        .skip(offset)
-        .limit(limit)
-    )
-    docs = await cursor.to_list(length=limit)
-    
-    response.headers["X-Cache"] = "MISS"
+        docs = cached
+    else:
+        response.headers["X-Cache"] = "MISS"
+        entries = await journal_service.list_entries(current_user.id)
+        docs = [entry.model_dump() for entry in entries]
 
-    #adding pagination to metadata
+    total_count = len(docs)
+    paginated_docs = docs[offset : offset + limit]
+
+    # adding pagination to metadata
     response.headers["X-Total-Count"] = str(total_count)
     response.headers["X-Has-Next"] = str(offset + limit < total_count)
 
-    return [_doc_to_response(doc) for doc in docs]
+    return [_doc_to_response(doc) for doc in paginated_docs]
 
 
 @router.post(

@@ -1,15 +1,10 @@
 import io
 
 import pytest
-from fastapi.testclient import TestClient
 from PIL import Image
 
-from app.main import app
 
-client = TestClient(app)
-
-
-def _register_and_login(email: str, name: str = "Profile User"):
+def _register_and_login(client, email: str, name: str = "Profile User"):
     client.post(
         "/api/v1/auth/register",
         json={
@@ -27,8 +22,8 @@ def _register_and_login(email: str, name: str = "Profile User"):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_get_profile():
-    headers = _register_and_login("profile-get@example.com", "Sofie dsouza")
+def test_get_profile(client):
+    headers = _register_and_login(client, "profile-get@example.com", "Sofie dsouza")
     response = client.get("/api/v1/auth/profile", headers=headers)
     assert response.status_code == 200
     data = response.json()
@@ -37,8 +32,8 @@ def test_get_profile():
     assert data["emergency_contacts"] == []
 
 
-def test_update_profile_name_and_emergency_contact():
-    headers = _register_and_login("profile-update@example.com")
+def test_update_profile_name_and_emergency_contact(client):
+    headers = _register_and_login(client, "profile-update@example.com")
     response = client.put(
         "/api/v1/auth/profile",
         headers=headers,
@@ -64,8 +59,8 @@ def test_update_profile_name_and_emergency_contact():
     assert refreshed.json()["name"] == "Updated Name"
 
 
-def test_upload_profile_picture():
-    headers = _register_and_login("profile-picture@example.com")
+def test_upload_profile_picture(client):
+    headers = _register_and_login(client, "profile-picture@example.com")
 
     image = Image.new("RGB", (100, 100), color=(73, 109, 137))
     buffer = io.BytesIO()
@@ -82,11 +77,12 @@ def test_upload_profile_picture():
     assert data["profile_picture_url"].startswith("/uploads/profile_pictures/")
 
 
-def test_upload_profile_picture_rejects_invalid_type():
-    headers = _register_and_login("profile-invalid@example.com")
+def test_upload_profile_picture_rejects_invalid_type(client):
+    headers = _register_and_login(client, "profile-invalid@example.com")
     response = client.post(
         "/api/v1/auth/profile/picture",
         headers=headers,
         files={"file": ("notes.txt", io.BytesIO(b"not an image"), "text/plain")},
     )
     assert response.status_code == 400
+

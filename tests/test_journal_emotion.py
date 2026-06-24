@@ -320,10 +320,10 @@ class TestDepressionFlagIntegration:
         mock_dep.process_emotion.assert_not_called()
     
     @patch(
-    "app.api.v1.endpoints.journal.hf_emotion_service.analyze",
-    new_callable=AsyncMock,
+        "app.api.v1.endpoints.journal.hf_emotion_service.analyze",
+        new_callable=AsyncMock,
     )
-    def test_create_journal_with_sleep_fields(mock_analyze, journal_client):
+    def test_create_journal_with_sleep_fields(self, mock_analyze, journal_client):
         mock_analyze.return_value = _mock_emotion_result()
 
         headers = _register_and_login(journal_client)

@@ -180,3 +180,13 @@ def expire_password_reset_token(raw_token: str) -> None:
         )
 
     asyncio.run(_expire())
+
+
+@pytest.fixture(autouse=True)
+def reset_limiter():
+    from app.core.middleware import limiter
+    limiter._storage.reset()
+    if hasattr(limiter, "limiter") and hasattr(limiter.limiter, "storage"):
+        limiter.limiter.storage.reset()
+    yield
+
